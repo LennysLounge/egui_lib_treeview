@@ -179,7 +179,7 @@ impl<'add_ui, NodeIdType: TreeViewId> NodeBuilder<'add_ui, NodeIdType> {
                             },
                         );
                     } else {
-                        let icon_id = Id::new(&self.id).with("tree view closer icon");
+                        let icon_id = Id::new(self.id).with("tree view closer icon");
                         let openness = ui.ctx().animate_bool(icon_id, self.is_open);
                         let closer_interaction = state.interact(&ui.max_rect());
                         paint_default_icon(ui, openness, &small_rect, &closer_interaction);
@@ -252,7 +252,7 @@ impl<'add_ui, NodeIdType: TreeViewId> NodeBuilder<'add_ui, NodeIdType> {
         let layer_id = LayerId::new(Order::Tooltip, drag_source_id);
 
         let background_rect = ui
-            .child_ui(ui.available_rect_before_wrap(), *ui.layout())
+            .child_ui(ui.available_rect_before_wrap(), *ui.layout(), None)
             .with_layer_id(layer_id, |ui| {
                 let background_position = ui.painter().add(Shape::Noop);
 

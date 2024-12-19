@@ -9,6 +9,7 @@ use egui::{
 };
 
 pub use builder::TreeViewBuilder;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 pub trait TreeViewId: Clone + Copy + PartialEq + Eq + Hash {}
 impl<T> TreeViewId for T where T: Clone + Copy + PartialEq + Eq + Hash {}
@@ -17,7 +18,7 @@ impl<T> TreeViewId for T where T: Clone + Copy + PartialEq + Eq + Hash {}
 ///
 /// This holds which node is selected and the open/close
 /// state of the directories.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TreeViewState<NodeIdType> {
     /// Id of the node that was selected.
     selected: Option<NodeIdType>,
@@ -44,7 +45,7 @@ impl<NodeIdType> Default for TreeViewState<NodeIdType> {
 impl<NodeIdType: TreeViewId> TreeViewState<NodeIdType> {
     /// Return the selected node if any is selected.
     pub fn selected(&self) -> Option<NodeIdType> {
-        self.selected.clone()
+        self.selected
     }
 
     /// Set the selected node for this tree.
@@ -90,9 +91,10 @@ impl<NodeIdType: TreeViewId> TreeViewState<NodeIdType> {
         self.node_states.iter_mut().find(|ns| &ns.id == id)
     }
 }
+
 impl<NodeIdType> TreeViewState<NodeIdType>
 where
-    NodeIdType: Clone + Send + Sync + 'static,
+    NodeIdType: Clone + Send + Sync + 'static + Serialize + DeserializeOwned,
 {
     pub fn load(ui: &mut Ui, id: Id) -> Option<Self> {
         ui.data_mut(|d| d.get_persisted(id))
@@ -103,7 +105,7 @@ where
     }
 }
 /// State of the dragged node.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct DragState<NodeIdType> {
     /// Id of the dragged node.
     pub node_id: NodeIdType,
@@ -116,7 +118,7 @@ struct DragState<NodeIdType> {
     pub drag_valid: bool,
 }
 /// State of each node in the tree.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct NodeState<NodeIdType> {
     /// Id of this node.
     id: NodeIdType,
@@ -215,7 +217,7 @@ impl TreeView {
 
     /// Start displaying the tree view.
     ///
-    /// Construct the tree view using the [`TreeViewBuilder`] by addind
+    /// Construct the tree view using the [`TreeViewBuilder`] by adding
     /// directories or leaves to the tree.
     pub fn show<NodeIdType>(
         self,
@@ -223,7 +225,7 @@ impl TreeView {
         build_tree_view: impl FnMut(TreeViewBuilder<'_, '_, NodeIdType>),
     ) -> TreeViewResponse<NodeIdType>
     where
-        NodeIdType: TreeViewId + Send + Sync + 'static,
+        NodeIdType: TreeViewId + Send + Sync + 'static + Serialize + DeserializeOwned,
     {
         let id = self.id;
         let mut state = TreeViewState::load(ui, id).unwrap_or_default();
@@ -332,7 +334,7 @@ impl TreeView {
                 for event in i.events.iter() {
                     match event {
                         Event::Key { key, pressed, .. } if *pressed => {
-                            handle_input(&mut data.peristant, key)
+                            handle_input(data.peristant, key)
                         }
                         _ => (),
                     }
@@ -355,7 +357,7 @@ impl TreeView {
             if let Some((drag_state, (drop_id, position))) =
                 data.peristant.dragged.as_ref().zip(data.drop)
             {
-                if ui.ctx().input(|i| i.pointer.any_released()) {
+                if ui.input(|i| i.pointer.button_released(egui::PointerButton::Primary)) {
                     data.actions.push(Action::Move {
                         source: drag_state.node_id,
                         target: drop_id,
@@ -384,13 +386,11 @@ impl TreeView {
         // Remember the size of the tree for next frame.
         data.peristant.size = used_rect.size();
 
-        let res = TreeViewResponse {
+        TreeViewResponse {
             response: data.interaction_response,
             drop_marker_idx: data.drop_marker_idx,
             actions: data.actions,
-        };
-
-        res
+        }
     }
 }
 

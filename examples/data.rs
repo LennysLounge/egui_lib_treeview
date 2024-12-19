@@ -44,7 +44,7 @@ impl Node {
 
     pub fn find(&self, id: &Uuid, action: &mut dyn FnMut(&Node)) {
         if self.id() == id {
-            (action)(&self);
+            (action)(self);
         } else {
             match self {
                 Node::Directory(dir) => {

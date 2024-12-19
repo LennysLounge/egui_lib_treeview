@@ -11,8 +11,6 @@ fn main() -> Result<(), eframe::Error> {
     //env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
     let options = eframe::NativeOptions {
         //viewport: egui::ViewportBuilder::default().with_inner_size([300.0, 500.0]),
-        default_theme: eframe::Theme::Dark,
-        follow_system_theme: false,
         ..Default::default()
     };
     eframe::run_native(
@@ -20,7 +18,7 @@ fn main() -> Result<(), eframe::Error> {
         options,
         Box::new(|cc| {
             egui_extras::install_image_loaders(&cc.egui_ctx);
-            Box::<MyApp>::default()
+            Ok(Box::<MyApp>::default())
         }),
     )
 }
@@ -107,30 +105,26 @@ fn show_tree_view(ui: &mut Ui, app: &mut MyApp) -> Response {
         .row_layout(app.settings.row_layout)
         .fill_space_horizontal(app.settings.fill_space_horizontal)
         .fill_space_vertical(app.settings.fill_space_vertical)
-        .max_width(
-            app.settings
-                .max_width_enabled
-                .then_some(app.settings.max_width)
-                .unwrap_or(f32::INFINITY),
-        )
-        .max_height(
-            app.settings
-                .max_height_enabled
-                .then_some(app.settings.max_height)
-                .unwrap_or(f32::INFINITY),
-        )
-        .min_width(
-            app.settings
-                .min_width_enabled
-                .then_some(app.settings.min_width)
-                .unwrap_or(0.0),
-        )
-        .min_height(
-            app.settings
-                .min_height_enabled
-                .then_some(app.settings.min_height)
-                .unwrap_or(0.0),
-        )
+        .max_width(if app.settings.max_width_enabled {
+            app.settings.max_width
+        } else {
+            f32::INFINITY
+        })
+        .max_height(if app.settings.max_height_enabled {
+            app.settings.max_height
+        } else {
+            f32::INFINITY
+        })
+        .min_width(if app.settings.min_width_enabled {
+            app.settings.min_width
+        } else {
+            0.0
+        })
+        .min_height(if app.settings.min_height_enabled {
+            app.settings.min_height
+        } else {
+            0.0
+        })
         .show(ui, |mut builder| {
             builder.node(NodeBuilder::dir(Uuid::default()).flatten(true));
             //builder.set_root_id(Uuid::default());
@@ -156,8 +150,8 @@ fn show_tree_view(ui: &mut Ui, app: &mut MyApp) -> Response {
                 target,
                 position,
             } => {
-                if let Some(source) = app.tree.remove(&source) {
-                    _ = app.tree.insert(&target, *position, source);
+                if let Some(source) = app.tree.remove(source) {
+                    _ = app.tree.insert(target, *position, source);
                 }
             }
             Action::Drag { .. } => (),
@@ -244,7 +238,7 @@ fn show_settings(ui: &mut Ui, settings: &mut Settings) {
 
         ui.label("Indent:");
         let mut indent = ui.ctx().style().spacing.indent;
-        ui.add(DragValue::new(&mut indent).clamp_range(0.0..=f32::INFINITY));
+        ui.add(DragValue::new(&mut indent).range(0.0..=f32::INFINITY));
         ui.ctx().style_mut(|style| {
             style.spacing.indent = indent;
         });
@@ -288,8 +282,7 @@ fn show_settings(ui: &mut Ui, settings: &mut Settings) {
                 let mut override_indent_value =
                     settings.override_indent.unwrap_or(ui.spacing().indent);
                 let res = ui.add(
-                    egui::DragValue::new(&mut override_indent_value)
-                        .clamp_range(0.0..=f32::INFINITY),
+                    egui::DragValue::new(&mut override_indent_value).range(0.0..=f32::INFINITY),
                 );
                 if res.changed() && override_enabled {
                     settings.override_indent = Some(override_indent_value);
@@ -299,7 +292,7 @@ fn show_settings(ui: &mut Ui, settings: &mut Settings) {
         ui.end_row();
 
         ui.label("Vline style");
-        egui::ComboBox::from_id_source("vline style combo box")
+        egui::ComboBox::from_id_salt("vline style combo box")
             .selected_text(match settings.vline_style {
                 VLineStyle::None => "None",
                 VLineStyle::VLine => "VLine",
@@ -313,7 +306,7 @@ fn show_settings(ui: &mut Ui, settings: &mut Settings) {
         ui.end_row();
 
         ui.label("Row layout");
-        egui::ComboBox::from_id_source("row layout combo box")
+        egui::ComboBox::from_id_salt("row layout combo box")
             .selected_text(match settings.row_layout {
                 RowLayout::Compact => "Compact",
                 RowLayout::CompactAlignedLables => "CompactAlignedLables",
@@ -353,7 +346,7 @@ fn show_settings(ui: &mut Ui, settings: &mut Settings) {
             ui.checkbox(&mut settings.max_width_enabled, "");
             ui.add_enabled(
                 settings.max_width_enabled,
-                egui::DragValue::new(&mut settings.max_width).clamp_range(0.0..=f32::INFINITY),
+                egui::DragValue::new(&mut settings.max_width).range(0.0..=f32::INFINITY),
             );
         });
         ui.end_row();
@@ -363,7 +356,7 @@ fn show_settings(ui: &mut Ui, settings: &mut Settings) {
             ui.checkbox(&mut settings.max_height_enabled, "");
             ui.add_enabled(
                 settings.max_height_enabled,
-                egui::DragValue::new(&mut settings.max_height).clamp_range(0.0..=f32::INFINITY),
+                egui::DragValue::new(&mut settings.max_height).range(0.0..=f32::INFINITY),
             );
         });
         ui.end_row();
@@ -373,7 +366,7 @@ fn show_settings(ui: &mut Ui, settings: &mut Settings) {
             ui.checkbox(&mut settings.min_width_enabled, "");
             ui.add_enabled(
                 settings.min_width_enabled,
-                egui::DragValue::new(&mut settings.min_width).clamp_range(0.0..=f32::INFINITY),
+                egui::DragValue::new(&mut settings.min_width).range(0.0..=f32::INFINITY),
             );
         });
         ui.end_row();
@@ -383,7 +376,7 @@ fn show_settings(ui: &mut Ui, settings: &mut Settings) {
             ui.checkbox(&mut settings.min_height_enabled, "");
             ui.add_enabled(
                 settings.min_height_enabled,
-                egui::DragValue::new(&mut settings.min_height).clamp_range(0.0..=f32::INFINITY),
+                egui::DragValue::new(&mut settings.min_height).range(0.0..=f32::INFINITY),
             );
         });
         ui.end_row();

@@ -11,14 +11,12 @@ fn main() -> Result<(), eframe::Error> {
     //env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([300.0, 500.0]),
-        default_theme: eframe::Theme::Dark,
-        follow_system_theme: false,
         ..Default::default()
     };
     eframe::run_native(
         "Egui_ltreeview select node example",
         options,
-        Box::new(|_| Box::<MyApp>::default()),
+        Box::new(|_| Ok(Box::<MyApp>::default())),
     )
 }
 

@@ -292,7 +292,7 @@ impl<'ui, 'state, NodeIdType: TreeViewId> TreeViewBuilder<'ui, 'state, NodeIdTyp
             }
         }
 
-        self.do_drop_node(&node, &row);
+        self.do_drop_node(node, &row);
 
         self.push_child_node_position(closer.or(icon).unwrap_or(label).left_center());
 
@@ -309,9 +309,6 @@ impl<'ui, 'state, NodeIdType: TreeViewId> TreeViewBuilder<'ui, 'state, NodeIdTyp
             return;
         };
 
-        if !self.ui.ctx().memory(|m| m.is_anything_being_dragged()) {
-            return;
-        }
         if self.data.peristant.dragged.is_none() {
             return;
         }
